@@ -7,6 +7,8 @@ import cv2
 import numpy as np
 import Queue
 import platform
+import time
+import os
 
 try:
   if platform.system() == 'Darwin':
@@ -178,8 +180,8 @@ def raw_to_8bit(data):
   return cv2.cvtColor(np.uint8(data), cv2.COLOR_GRAY2RGB)
 
 def display_temperature(img, val_k, loc, color):
-  val = ktof(val_k)
-  cv2.putText(img,"{0:.1f} degF".format(val), loc, cv2.FONT_HERSHEY_SIMPLEX, 0.75, color, 2)
+  val = ktoc(val_k)
+  cv2.putText(img,"{0:.1f} degC".format(val), loc, cv2.FONT_HERSHEY_SIMPLEX, 0.75, color, 2)
   x, y = loc
   cv2.line(img, (x - 2, y), (x + 2, y), color, 1)
   cv2.line(img, (x, y - 2), (x, y + 2), color, 1)
@@ -211,27 +213,32 @@ def main():
 
       print_device_info(devh)
 
-      libuvc.uvc_get_stream_ctrl_format_size(devh, byref(ctrl), UVC_FRAME_FORMAT_Y16, 80, 60, 9)
+      libuvc.uvc_get_stream_ctrl_format_size(devh, byref(ctrl), UVC_FRAME_FORMAT_Y16, 160, 120, 9)
 
       res = libuvc.uvc_start_streaming(devh, byref(ctrl), PTR_PY_FRAME_CALLBACK, None, 0)
       if res < 0:
         print "uvc_start_streaming failed: {0}".format(res)
         exit(1)
 
+      output_dir = "captures"
+
       try:
         while True:
           data = q.get(True, 500)
           if data is None:
             break
-          data = cv2.resize(data[:,:], (640, 480))
+          data = cv2.resize(data[:,:], (640, 480)) # interpolation=cv2.INTER_LANCZOS4)
           minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(data)
           img = raw_to_8bit(data)
-          display_temperature(img, minVal, minLoc, (255, 0, 0))
-          display_temperature(img, maxVal, maxLoc, (0, 0, 255))
-          cv2.imshow('Lepton 2.5 Radiometry', img)
-          cv2.waitKey(1)
+          img = cv2.applyColorMap(img, cv2.COLORMAP_HOT)
+          # display_temperature(img, minVal, minLoc, (255, 0, 0))
+          # display_temperature(img, maxVal, maxLoc, (0, 0, 255))
+          # cv2.imshow('Lepton 2.5 Radiometry', img)
+          # cv2.waitKey(1)
+          timestr = time.strftime("%Y%m%d-%H%M%S")
+          cv2.imwrite(os.path.join(output_dir, "{:s}.png".format(timestr)), img)
+          time.sleep(20)
 
-        cv2.destroyAllWindows()
       finally:
         libuvc.uvc_stop_streaming(devh)
 
