@@ -188,6 +188,12 @@ PTR_PY_FRAME_CALLBACK = CFUNCTYPE(
 
 
 def generate_colour_map():
+    """
+    Conversion of the colour map from GetThermal to a numpy LUT:
+
+        https://github.com/groupgets/GetThermal/blob/bb467924750a686cc3930f7e3a253818b755a2c0/src/dataformatter.cpp#L6
+
+    """
 
     lut = np.zeros((256, 1, 3), dtype=np.uint8)
 
@@ -337,6 +343,9 @@ def main():
 
             colour_map = generate_colour_map()
 
+            #
+            # Min/max value to pin across the LUT
+            #
             min_c = ctok(7)
             max_c = ctok(20)
 
@@ -345,21 +354,23 @@ def main():
                     data = q.get(True, 500)
                     if data is None:
                         break
-                    # interpolation=cv2.INTER_LANCZOS4)
                     data = cv2.resize(data[:, :], (640, 480))
                     minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(data)
+
+                    #
+                    # Dirty-hack to ensure that the LUT is always scaled
+                    # against the colours we care about
+                    #
                     data[0][0] = min_c
                     data[-1][-1] = max_c
                     print minVal, maxVal
                     img = raw_to_8bit(data)
-                    # img = cv2.applyColorMap(img, cv2.COLORMAP_JET)
                     img = cv2.LUT(img, colour_map)
-                    # display_temperature(img, minVal, minLoc, (255, 0, 0))
-                    # display_temperature(img, maxVal, maxLoc, (0, 0, 255))
-                    # cv2.imshow('Lepton 2.5 Radiometry', img)
-                    # cv2.waitKey(1)
                     timestr = time.strftime("%Y%m%d-%H%M%S")
 
+                    #
+                    # Max/min values in the top-left
+                    #
                     font = cv2.FONT_HERSHEY_SIMPLEX
                     time_str = "{:.2f}, {:.2f}".format(
                         ktoc(minVal), ktoc(maxVal))
@@ -382,3 +393,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# EOF
