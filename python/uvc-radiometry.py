@@ -366,19 +366,20 @@ def main():
                     print minVal, maxVal
                     img = raw_to_8bit(data)
                     img = cv2.LUT(img, colour_map)
-                    timestr = time.strftime("%Y%m%d-%H%M%S")
+                    timestr = time.strftime("%y%m%d-%H%M%S")
+                    fname = time.strftime("%Y%m%d-%H%M%S")
 
                     #
                     # Max/min values in the top-left
                     #
                     font = cv2.FONT_HERSHEY_SIMPLEX
-                    time_str = "{:.2f}, {:.2f}".format(
-                        ktoc(minVal), ktoc(maxVal))
-                    cv2.putText(img, time_str, (10, 32),
-                                font, 1.0, (155, 165, 237), 2, cv2.CV_AA)
+                    time_str = "{:s} ({:.2f}, {:.2f})".format(
+                        timestr, ktoc(minVal), ktoc(maxVal))
+                    cv2.putText(img, time_str, (10, 26),
+                                font, 0.70, (40, 60, 215), 1, cv2.CV_AA)
 
                     cv2.imwrite(os.path.join(
-                        output_dir, "{:s}.png".format(timestr)), img)
+                        output_dir, "{:s}.png".format(fname)), img)
                     time.sleep(20)
 
             finally:
